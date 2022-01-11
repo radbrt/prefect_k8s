@@ -18,6 +18,6 @@ def hello_world():
 
 
 with Flow(
-    FLOW_NAME, storage=STORAGE, run_config=KubernetesRun(labels=["k8s"],),
+    FLOW_NAME, storage=STORAGE, run_config=KubernetesRun(labels=["k8s"], image='radbrt.azurecr.io/prefect'),
 ) as flow:
     hw = hello_world()
