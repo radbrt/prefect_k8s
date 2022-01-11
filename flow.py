@@ -29,7 +29,7 @@ def kv_demo():
     logger.info(f"The secret is {s.value}")
 
 with Flow(
-    FLOW_NAME, storage=STORAGE, run_config=KubernetesRun(labels=["aks"], image='radbrt.azurecr.io/prefect'),
+    FLOW_NAME, storage=STORAGE, run_config=KubernetesRun(labels=["aks"], image='radbrt.azurecr.io/prefectaz'),
 ) as flow:
     hw = hello_world()
     kvd = kv_demo()
