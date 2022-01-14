@@ -90,3 +90,4 @@ with Flow(FLOW_NAME, storage=STORAGE,
         labels=["aks"], image='radbrt.azurecr.io/prefectaz')) as flow:
 
     get_ftp_files('two_types', '.*eventA.*\.csv')
+    get_ftp_files('ansifun', '.*\.csv')
