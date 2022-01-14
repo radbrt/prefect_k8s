@@ -61,7 +61,7 @@ def get_ftp_files(pathname, regex, file_nick='default', encoding='UTF-8'):
         logger.info(cleanfile)
         logger.info(basename)
 
-        ftp_client.get(cleanfile, f"/data/{pathname}/{basename}")
+        ftp_client.get(cleanfile, f"/data/{pathname}/{file_nick}/{basename}")
 
         converttask = ShellTask(
             command=f"iconv -f {encoding} -t utf-8 /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
