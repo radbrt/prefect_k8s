@@ -26,7 +26,7 @@ def get_kv_secret(secretname):
     client = SecretClient(vault_url = kvurl, credential = credential)
 
     s = client.get_secret(secretname)
-    return s
+    return s.value
 
 @task
 def get_ftp_files(pathname, regex):
@@ -34,9 +34,11 @@ def get_ftp_files(pathname, regex):
     logger = prefect.context.get('logger')
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    FTP_HOST=get_kv_secret('FTP-HOST')
+    logger.info(FTP_HOST)
 
     ssh_client.connect(
-        hostname=get_kv_secret('FTP-HOST'), 
+        hostname=FTP_HOST,
         username=get_kv_secret('FTP-USER'), 
         password=get_kv_secret('FTP-PWD')
     )
