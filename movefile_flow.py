@@ -29,7 +29,7 @@ def get_kv_secret(secretname):
     return s.value
 
 @task
-def get_ftp_files(pathname, regex):
+def get_ftp_files(pathname, regex, file_nick='default', encoding='UTF-8'):
 
     logger = prefect.context.get('logger')
     ssh_client = paramiko.SSHClient()
@@ -50,8 +50,8 @@ def get_ftp_files(pathname, regex):
     findlist = commandoutput.readlines()
     logger.info(findlist)
 
-    os.makedirs(f"/data/{pathname}", exist_ok=True)
-    os.makedirs(f"/converted/{pathname}/", exist_ok=True)
+    os.makedirs(f"/data/{pathname}/{file_nick}", exist_ok=True)
+    os.makedirs(f"/converted/{pathname}/{file_nick}", exist_ok=True)
 
     ftp_client = ssh_client.open_sftp()
 
@@ -64,7 +64,7 @@ def get_ftp_files(pathname, regex):
         ftp_client.get(cleanfile, f"/data/{pathname}/{basename}")
 
         converttask = ShellTask(
-            command=f"iconv -t utf-8 /data/{pathname}/{basename} > /converted/{pathname}/{basename}"
+            command=f"iconv -f {encoding} -t utf-8 /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
         ).run()
 
         put_file_gcs.run(f"/converted/{pathname}/{basename}")
@@ -90,4 +90,4 @@ with Flow(FLOW_NAME, storage=STORAGE,
         labels=["aks"], image='radbrt.azurecr.io/prefectaz')) as flow:
 
     get_ftp_files('two_types', '.*eventA.*\.csv')
-    get_ftp_files('ansifun', '.*\.csv')
+    get_ftp_files('ansifun', '.*\.csv', file_nick='nb', encoding='ISO-8859-1')
