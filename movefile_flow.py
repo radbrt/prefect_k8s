@@ -67,7 +67,7 @@ def get_ftp_files(pathname, regex, file_nick='default', encoding='UTF-8'):
             command=f"iconv -f {encoding} -t utf-8 /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
         ).run()
 
-        put_file_gcs.run(f"/converted/{pathname}/{basename}")
+        put_file_gcs.run(f"/converted/{pathname}/{file_nick}/{basename}")
 
     ftp_client.close()
 
