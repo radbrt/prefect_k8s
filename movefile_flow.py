@@ -1,8 +1,9 @@
 
+from ast import Param
 import os
 from glob import glob
 import prefect
-from prefect import task, Flow
+from prefect import task, Flow, Parameter
 from prefect.tasks.shell import ShellTask
 from prefect.storage import GitHub
 import paramiko
@@ -29,18 +30,21 @@ def get_kv_secret(secretname):
     return s.value
 
 @task
-def get_ftp_files(pathname, regex, file_nick='default', encoding='UTF-8'):
+def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', encoding='UTF-8'):
 
     logger = prefect.context.get('logger')
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    FTP_HOST=get_kv_secret('FTP-HOST')
-    logger.info(FTP_HOST)
+    ftpcreds = json.loads(get_kv_secret(KV_CONNECT_SECRET_NAME))
+    FTP_HOST = ftpcreds['HOST']
+    FTP_USERNAME = ftpcreds['USERNAME']
+    FTP_PASSWORD = ftpcreds['PASSWORD']
+    logger.info(f"Connecting to {FTP_HOST}")
 
     ssh_client.connect(
         hostname=FTP_HOST,
-        username=get_kv_secret('FTP-USER'), 
-        password=get_kv_secret('FTP-PWD')
+        username=FTP_USERNAME, 
+        password=FTP_PASSWORD
     )
 
     commandinput, commandoutput, commanderror = ssh_client.exec_command(
@@ -89,5 +93,10 @@ with Flow(FLOW_NAME, storage=STORAGE,
     run_config=KubernetesRun(
         labels=["aks"], image='radbrt.azurecr.io/prefectaz')) as flow:
 
-    get_ftp_files('two_types', '.*eventA.*\.csv')
-    get_ftp_files('ansifun', '.*\.csv', file_nick='nb', encoding='ISO-8859-1')
+    FTP_CREDS_SECRET = Parameter('FTP_CREDS_SECRET_NAME')
+    PATHNAME = Parameter('pathname')
+    regex = Parameter('regex', default='.*')
+    encoding = Parameter('encoding', default='utf-8')
+    file_nick = Parameter('file_nick', default='default')
+    
+    get_ftp_files(FTP_CREDS_SECRET, PATHNAME, regex, encoding, file_nick)
