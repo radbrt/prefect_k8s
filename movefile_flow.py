@@ -108,7 +108,8 @@ def put_file_gcs(file_location):
     logger.info(filenames)
 
     logger.info('bucket fetched')
-    blob = bucket.blob(file_location[1:])
+    logger.info(file_location[1:])
+    blob = bucket.blob('test/file.txt')
     logger.info('blob fetched')
     blob.upload_from_filename(file_location)
     logger.info('upload done')
