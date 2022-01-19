@@ -1,5 +1,3 @@
-
-from ast import Param
 import os
 from glob import glob
 import prefect
@@ -91,16 +89,21 @@ def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', 
 
 @task
 def put_file_gcs(file_location):
+
+    logger = prefect.context.get('logger')
     credstring = get_kv_secret('GCP-KEY')
     cred = json.loads(credstring)
-
+    logger.info('creds acquired')
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred)
     client = storage.Client(credentials=credentials, project='radjobads')
+    
+    logger.info('client created')
     bucket = client.get_bucket('radjobads')
-
+    logger.info('bucket fetched')
     blob = bucket.blob(file_location[1:])
+    logger.info('blob fetched')
     blob.upload_from_filename(file_location)
-
+    logger.info('upload done')
 
 with Flow(FLOW_NAME, storage=STORAGE, 
     run_config=KubernetesRun(
