@@ -91,6 +91,8 @@ def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', 
 def put_file_gcs(file_location):
 
     logger = prefect.context.get('logger')
+    logger.info(file_location)
+    logger.info(f"Is this a file? {os.path.isfile(file_location}")
     credstring = get_kv_secret('GCP-KEY')
     cred = json.loads(credstring)
     logger.info('creds acquired')
