@@ -99,8 +99,14 @@ def put_file_gcs(file_location):
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred)
     client = storage.Client(credentials=credentials, project='radjobads')
     
+
+
     logger.info('client created')
     bucket = client.get_bucket('radjobads')
+
+    filenames = [file.name.split('/')[-1].strip() for file in bucket.list_blobs(prefix='converted/two_types/default')]
+    logger.info(filenames)
+
     logger.info('bucket fetched')
     blob = bucket.blob(file_location[1:])
     logger.info('blob fetched')
