@@ -65,6 +65,8 @@ def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', 
         logger.info(cleanfile)
         logger.info(basename)
 
+        converttask = ShellTask(command=f"rm -f /converted/{pathname}/{file_nick}/{basename}").run()
+
         ftp_client.get(cleanfile, f"/data/{pathname}/{file_nick}/{basename}")
 
         try:
@@ -77,7 +79,7 @@ def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', 
                 helper_script=f"rm -f /converted/{pathname}/{file_nick}/{basename}",
                 command=f"mv /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
             ).run()
-            
+
         put_file_gcs.run(f"/converted/{pathname}/{file_nick}/{basename}")
 
     ftp_client.close()
