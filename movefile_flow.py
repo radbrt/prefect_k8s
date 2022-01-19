@@ -67,10 +67,17 @@ def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', 
 
         ftp_client.get(cleanfile, f"/data/{pathname}/{file_nick}/{basename}")
 
-        converttask = ShellTask(
-            command=f"iconv -f {encoding} -t utf-8 /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
-        ).run()
-
+        try:
+            converttask = ShellTask(
+                helper_script=f"rm -f /converted/{pathname}/{file_nick}/{basename}",
+                command=f"iconv -f {encoding} -t utf-8 /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
+            ).run()
+        except Exception as e:
+            converttask = ShellTask(
+                helper_script=f"rm -f /converted/{pathname}/{file_nick}/{basename}",
+                command=f"mv /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
+            ).run()
+            
         put_file_gcs.run(f"/converted/{pathname}/{file_nick}/{basename}")
 
     ftp_client.close()
