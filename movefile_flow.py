@@ -112,4 +112,4 @@ with Flow(FLOW_NAME, storage=STORAGE,
     encoding = Parameter('encoding', default='utf-8')
     file_nick = Parameter('file_nick', default='default')
     
-    get_ftp_files(FTP_CREDS_SECRET, PATHNAME, regex, encoding, file_nick)
+    get_ftp_files(FTP_CREDS_SECRET, PATHNAME, regex, encoding=encoding, file_nick=file_nick)
