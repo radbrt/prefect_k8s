@@ -40,6 +40,9 @@ def transfer_named_file(FTP_CREDS_SECRET, source_file, target_file, encoding):
     filename = source_file.split('/')[-1]
 
     logger = prefect.context.get('logger')
+    logger.info(f"source_file: {source_file}")
+    logger.info(f"target_file: {target_file}")
+    
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ftpcreds = json.loads(get_kv_secret(FTP_CREDS_SECRET))
