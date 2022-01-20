@@ -42,7 +42,7 @@ def get_gcp_filenames(bucket_prefix):
 
 
 @task
-def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', encoding='utf-8'):
+def get_new_ftp_files(KV_CONNECT_SECRET_NAME, SOURCE_PATH, regex, TARGET_PATH='misc', encoding='utf-8'):
 
     logger = prefect.context.get('logger')
     ssh_client = paramiko.SSHClient()
@@ -60,57 +60,49 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='defaul
     )
 
     commandinput, commandoutput, commanderror = ssh_client.exec_command(
-        command=f"find ~/{pathname} -type f -regex '{regex}'"
+        command=f"find {SOURCE_PATH} -type f -mazdepth 1 -regex '{regex}'"
     )
 
     findlist = commandoutput.readlines()
     logger.info(f"All files: {findlist}")
 
-    os.makedirs(f"/data/{pathname}/{file_nick}", exist_ok=True)
-    os.makedirs(f"/converted/{pathname}/{file_nick}", exist_ok=True)
+    os.makedirs(f"/data/", exist_ok=True)
+    os.makedirs(f"/converted/", exist_ok=True)
 
     ftp_client = ssh_client.open_sftp()
 
-    existing_files = get_gcp_filenames(f"/converted/{pathname}/{file_nick}")
+    existing_files = get_gcp_filenames(TARGET_PATH)
     findlist_filenames = [n.split('/')[-1].strip() for n in findlist]
     logger.info(f"All files: {findlist_filenames}")
+    logger.info(f"Existing files: {existing_files}")
     new_files = set(findlist_filenames) - set(existing_files)
 
-    new_files_with_paths = [f"{pathname}/{filename}" for filename in new_files]
+    for file in new_files:
 
-    logger.info(f"New files: {new_files_with_paths}")
+        deletetask = ShellTask(command=f"rm -f /data/{file}").run()
 
-    for file in new_files_with_paths:
-        cleanfile = file.strip()
-        basename = cleanfile.split('/')[-1]
-
-        deletetask = ShellTask(command=f"rm -f /converted/{pathname}/{file_nick}/{basename}").run()
-
-        ftp_client.get(cleanfile, f"/data/{pathname}/{file_nick}/{basename}")
-        logger.info(f"FTP Done")
+        ftp_client.get(f"{TARGET_PATH}/{file}", f"/data/{file}")
 
         if encoding.lower() != 'utf-8':
             converttask = ShellTask(
-                helper_script=f"rm -f /converted/{pathname}/{file_nick}/{basename}",
-                command=f"iconv -f {encoding} -t utf-8 /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
+                helper_script=f"rm -f /converted/{file}",
+                command=f"iconv -f {encoding} -t utf-8 /data/{file} > /converted/{file}"
             ).run()
             logger.info(f"finished converting")
         else:
             movetask = ShellTask(
-                helper_script=f"rm -f /converted/{pathname}/{file_nick}/{basename}",
-                command=f"mv /data/{pathname}/{file_nick}/{basename} /converted/{pathname}/{file_nick}/{basename}"
+                helper_script=f"rm -f /converted/{file}",
+                command=f"mv /data/{file} /converted/{file}"
             ).run()
             logger.info(f"excepting, move file instead")
 
-        put_file_gcs.run(f"/converted/{pathname}/{file_nick}/{basename}")
+        put_file_gcs.run(f"/converted/{file}", f"{TARGET_PATH}/{file}")
 
     ftp_client.close()
 
 
 @task
-def put_file_gcs(file_location):
-
-    logger = prefect.context.get('logger')
+def put_file_gcs(source_file, target_file):
 
     credstring = get_kv_secret('GCP-KEY')
     cred = json.loads(credstring)
@@ -119,8 +111,8 @@ def put_file_gcs(file_location):
 
     bucket = client.get_bucket('radjobads')
 
-    blob = bucket.blob(file_location[1:])
-    blob.upload_from_filename(file_location)
+    blob = bucket.blob(target_file)
+    blob.upload_from_filename(source_file)
 
 
 with Flow(FLOW_NAME, storage=STORAGE, 
@@ -128,9 +120,9 @@ with Flow(FLOW_NAME, storage=STORAGE,
         labels=["aks"], image='radbrt.azurecr.io/prefectaz')) as flow:
 
     FTP_CREDS_SECRET = Parameter('FTP_CREDS_SECRET_NAME')
-    PATHNAME = Parameter('pathname')
+    SOURCE_PATH = Parameter('SOURCE_PATH')
     regex = Parameter('regex', default='.*')
     encoding = Parameter('encoding', default='utf-8')
-    file_nick = Parameter('file_nick', default='default')
+    TARGET_PATH = Parameter('TARGET_PATH', default='misc')
     
-    get_new_ftp_files(FTP_CREDS_SECRET, PATHNAME, regex, encoding=encoding, file_nick=file_nick)
+    get_new_ftp_files(FTP_CREDS_SECRET, SOURCE_PATH, regex, encoding=encoding, file_nick=TARGET_PATH)
