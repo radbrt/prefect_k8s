@@ -34,7 +34,7 @@ def get_kv_secret(secretname):
 @task()
 def transfer_named_file(FTP_CREDS_SECRET, source_file, target_file, encoding):
 
-    filename = source_file.spit('/')[-1]
+    filename = source_file.split('/')[-1]
 
     logger = prefect.context.get('logger')
     ssh_client = paramiko.SSHClient()
