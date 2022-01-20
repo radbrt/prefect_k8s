@@ -76,7 +76,7 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, SOURCE_PATH, regex, TARGET_PATH='m
     logger.info(f"All files: {findlist_filenames}")
     logger.info(f"Existing files: {existing_files}")
     new_files = set(findlist_filenames) - set(existing_files)
-
+    logger.info(f"New files: {new_files}")
     for file in new_files:
 
         deletetask = ShellTask(command=f"rm -f /data/{file}").run()
