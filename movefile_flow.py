@@ -76,6 +76,7 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, SOURCE_PATH, regex, TARGET_PATH='m
     logger.info(f"All files: {findlist_filenames}")
     logger.info(f"Existing files: {existing_files}")
     new_files = set(findlist_filenames) - set(existing_files)
+    
     logger.info(f"New files: {new_files}")
 
     for file in new_files:
@@ -101,8 +102,11 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, SOURCE_PATH, regex, TARGET_PATH='m
 
     ftp_client.close()
 
+@task()
+def put_file_ssh(source_path, target_path, SSH_CREDS):
+    pass
 
-@task
+@task()
 def put_file_gcs(source_file, target_file):
 
     credstring = get_kv_secret('GCP-KEY')

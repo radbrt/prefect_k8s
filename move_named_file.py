@@ -1,6 +1,8 @@
+from ensurepip import version
 import os
 from glob import glob
 import prefect
+import datetime
 from prefect import task, Flow, Parameter
 from prefect.tasks.shell import ShellTask
 from prefect.storage import GitHub
@@ -32,17 +34,24 @@ def get_kv_secret(secretname):
 
 
 @task()
-def transfer_named_file(FTP_CREDS_SECRET, source_file, target_file, encoding):
+def transfer_named_file(FTP_CREDS_SECRET, source_file, target_file, encoding, version_file=True):
 
     os.makedirs(f"/data/", exist_ok=True)
     os.makedirs(f"/converted/", exist_ok=True)
 
-    filename = source_file.split('/')[-1]
+    if version_file:
+        original_filename = os.path.basename(source_file)
+        ext = original_filename.split('.')[-1]
+        base = '.'.join(original_filename.split('.')[:-1])
+        versionstamp = str(datetime.datetime.utcnow().strftime('%s'))
+        filename = (base or 'file') + '.' + versionstamp + '.' + ext
+    else:
+        filename = os.path.basename(source_file)
 
     logger = prefect.context.get('logger')
     logger.info(f"source_file: {source_file}")
     logger.info(f"target_file: {target_file}")
-    
+
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ftpcreds = json.loads(get_kv_secret(FTP_CREDS_SECRET))
