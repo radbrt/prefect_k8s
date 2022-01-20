@@ -60,7 +60,7 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, SOURCE_PATH, regex, TARGET_PATH='m
     )
 
     commandinput, commandoutput, commanderror = ssh_client.exec_command(
-        command=f"find {SOURCE_PATH} -type f -mazdepth 1 -regex '{regex}'"
+        command=f"find {SOURCE_PATH} -type f -maxdepth 1 -regex '{regex}'"
     )
 
     findlist = commandoutput.readlines()
