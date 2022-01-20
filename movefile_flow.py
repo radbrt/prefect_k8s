@@ -67,7 +67,7 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='defaul
     )
 
     findlist = commandoutput.readlines()
-    logger.info(findlist)
+    logger.info(f"All files: {findlist}")
 
     os.makedirs(f"/data/{pathname}/{file_nick}", exist_ok=True)
     os.makedirs(f"/converted/{pathname}/{file_nick}", exist_ok=True)
@@ -75,7 +75,9 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='defaul
     ftp_client = ssh_client.open_sftp()
 
     existing_files = get_gcp_filenames(f"/converted/{pathname}/{file_nick}")
-    new_files = set(findlist) - set(existing_files)
+    findlist_filenames = [n.split('/')[-1].strip() for n in findlist]
+    new_files = set(findlist_filenames) - set(existing_files)
+    logger.info(f"New files: {new_files}")
 
     for file in new_files:
         cleanfile = file.strip()
@@ -120,9 +122,6 @@ def put_file_gcs(file_location):
 
     logger.info('client created')
     bucket = client.get_bucket('radjobads')
-
-    filenames = [file.name.split('/')[-1].strip() for file in bucket.list_blobs(prefix='converted/two_types/default')]
-    logger.info(filenames)
 
     logger.info('bucket fetched')
     logger.info(file_location[1:])
