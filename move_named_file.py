@@ -34,6 +34,9 @@ def get_kv_secret(secretname):
 @task()
 def transfer_named_file(FTP_CREDS_SECRET, source_file, target_file, encoding):
 
+    os.makedirs(f"/data/", exist_ok=True)
+    os.makedirs(f"/converted/", exist_ok=True)
+
     filename = source_file.split('/')[-1]
 
     logger = prefect.context.get('logger')
@@ -52,6 +55,7 @@ def transfer_named_file(FTP_CREDS_SECRET, source_file, target_file, encoding):
     )
 
     ftp_client = ssh_client.open_sftp()
+
 
     ftp_client.get(f"{source_file}", f"/data/{filename}")
 
