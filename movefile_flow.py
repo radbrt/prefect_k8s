@@ -76,7 +76,7 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='defaul
     logger.info(f"All files: {findlist_filenames}")
     new_files = set(findlist_filenames) - set(existing_files)
 
-    new_files_with_paths = [f"/converted/{pathname}/{file_nick}/{filename}" for filename in new_files]
+    new_files_with_paths = [f"{pathname}/{filename}" for filename in new_files]
 
     logger.info(f"New files: {new_files_with_paths}")
 
