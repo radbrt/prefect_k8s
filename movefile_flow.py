@@ -27,8 +27,25 @@ def get_kv_secret(secretname):
     s = client.get_secret(secretname)
     return s.value
 
+def get_gcp_filenames(bucket_prefix):
+
+    logger = prefect.context.get('logger')
+    logger.info(bucket_prefix)
+    credstring = get_kv_secret('GCP-KEY')
+    cred = json.loads(credstring)
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred)
+    client = storage.Client(credentials=credentials, project='radjobads')
+
+    logger.info('client created')
+    bucket = client.get_bucket('radjobads')
+
+    filenames = [file.name.split('/')[-1].strip() for file in bucket.list_blobs(prefix=bucket_prefix)]
+
+    return filenames
+
+
 @task
-def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', encoding='UTF-8'):
+def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', encoding='utf-8'):
 
     logger = prefect.context.get('logger')
     ssh_client = paramiko.SSHClient()
@@ -57,31 +74,34 @@ def get_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='default', 
 
     ftp_client = ssh_client.open_sftp()
 
-    for file in findlist:
+    existing_files = get_gcp_filenames(f"/converted/{pathname}/{file_nick}")
+    new_files = set(findlist) - set(existing_files)
+
+    for file in new_files:
         cleanfile = file.strip()
         basename = cleanfile.split('/')[-1]
         logger.info(cleanfile)
         logger.info(basename)
 
         deletetask = ShellTask(command=f"rm -f /converted/{pathname}/{file_nick}/{basename}").run()
+
         logger.info(f"Deleted: {deletetask}")
         ftp_client.get(cleanfile, f"/data/{pathname}/{file_nick}/{basename}")
         logger.info(f"FTP Done")
 
-        try:
+        if encoding.lower() != 'utf-8':
             converttask = ShellTask(
                 helper_script=f"rm -f /converted/{pathname}/{file_nick}/{basename}",
                 command=f"iconv -f {encoding} -t utf-8 /data/{pathname}/{file_nick}/{basename} > /converted/{pathname}/{file_nick}/{basename}"
             ).run()
             logger.info(f"finished converting")
-        except Exception as e:
+        else:
             movetask = ShellTask(
                 helper_script=f"rm -f /converted/{pathname}/{file_nick}/{basename}",
                 command=f"mv /data/{pathname}/{file_nick}/{basename} /converted/{pathname}/{file_nick}/{basename}"
             ).run()
             logger.info(f"excepting, move file instead")
 
-        logger.info(f"Putting to /converted/{pathname}/{file_nick}/{basename}")
         put_file_gcs.run(f"/converted/{pathname}/{file_nick}/{basename}")
 
     ftp_client.close()
@@ -95,11 +115,8 @@ def put_file_gcs(file_location):
     logger.info(f"Is this a file? {os.path.isfile(file_location)}")
     credstring = get_kv_secret('GCP-KEY')
     cred = json.loads(credstring)
-    logger.info('creds acquired')
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred)
     client = storage.Client(credentials=credentials, project='radjobads')
-    
-
 
     logger.info('client created')
     bucket = client.get_bucket('radjobads')
@@ -114,6 +131,7 @@ def put_file_gcs(file_location):
     blob.upload_from_filename(file_location)
     logger.info('upload done')
 
+
 with Flow(FLOW_NAME, storage=STORAGE, 
     run_config=KubernetesRun(
         labels=["aks"], image='radbrt.azurecr.io/prefectaz')) as flow:
@@ -124,4 +142,4 @@ with Flow(FLOW_NAME, storage=STORAGE,
     encoding = Parameter('encoding', default='utf-8')
     file_nick = Parameter('file_nick', default='default')
     
-    get_ftp_files(FTP_CREDS_SECRET, PATHNAME, regex, encoding=encoding, file_nick=file_nick)
+    get_new_ftp_files(FTP_CREDS_SECRET, PATHNAME, regex, encoding=encoding, file_nick=file_nick)
