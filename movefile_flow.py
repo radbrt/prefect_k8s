@@ -125,4 +125,4 @@ with Flow(FLOW_NAME, storage=STORAGE,
     encoding = Parameter('encoding', default='utf-8')
     TARGET_PATH = Parameter('TARGET_PATH', default='misc')
     
-    get_new_ftp_files(FTP_CREDS_SECRET, SOURCE_PATH, regex, encoding=encoding, file_nick=TARGET_PATH)
+    get_new_ftp_files(FTP_CREDS_SECRET, SOURCE_PATH, regex, encoding=encoding, TARGET_PATH=TARGET_PATH)
