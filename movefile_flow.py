@@ -29,14 +29,11 @@ def get_kv_secret(secretname):
 
 def get_gcp_filenames(bucket_prefix):
 
-    logger = prefect.context.get('logger')
-    logger.info(bucket_prefix)
     credstring = get_kv_secret('GCP-KEY')
     cred = json.loads(credstring)
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred)
     client = storage.Client(credentials=credentials, project='radjobads')
 
-    logger.info('client created')
     bucket = client.get_bucket('radjobads')
 
     filenames = [file.name.split('/')[-1].strip() for file in bucket.list_blobs(prefix=bucket_prefix)]
@@ -76,18 +73,16 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='defaul
 
     existing_files = get_gcp_filenames(f"/converted/{pathname}/{file_nick}")
     findlist_filenames = [n.split('/')[-1].strip() for n in findlist]
+    logger.info(f"All files: {findlist_filenames}")
     new_files = set(findlist_filenames) - set(existing_files)
     logger.info(f"New files: {new_files}")
 
     for file in new_files:
         cleanfile = file.strip()
         basename = cleanfile.split('/')[-1]
-        logger.info(cleanfile)
-        logger.info(basename)
 
         deletetask = ShellTask(command=f"rm -f /converted/{pathname}/{file_nick}/{basename}").run()
 
-        logger.info(f"Deleted: {deletetask}")
         ftp_client.get(cleanfile, f"/data/{pathname}/{file_nick}/{basename}")
         logger.info(f"FTP Done")
 
@@ -113,22 +108,16 @@ def get_new_ftp_files(KV_CONNECT_SECRET_NAME, pathname, regex, file_nick='defaul
 def put_file_gcs(file_location):
 
     logger = prefect.context.get('logger')
-    logger.info(file_location)
-    logger.info(f"Is this a file? {os.path.isfile(file_location)}")
+
     credstring = get_kv_secret('GCP-KEY')
     cred = json.loads(credstring)
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred)
     client = storage.Client(credentials=credentials, project='radjobads')
 
-    logger.info('client created')
     bucket = client.get_bucket('radjobads')
 
-    logger.info('bucket fetched')
-    logger.info(file_location[1:])
     blob = bucket.blob(file_location[1:])
-    logger.info('blob fetched')
     blob.upload_from_filename(file_location)
-    logger.info('upload done')
 
 
 with Flow(FLOW_NAME, storage=STORAGE, 
