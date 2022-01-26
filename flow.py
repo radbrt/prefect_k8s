@@ -2,8 +2,6 @@ from prefect import Flow, task
 from prefect.storage import GitHub
 import prefect
 from prefect.run_configs import KubernetesRun
-from azure.keyvault.secrets import SecretClient
-from azure.identity import DefaultAzureCredential
 
 FLOW_NAME = "gh_storage_k8s_run"
 STORAGE = GitHub(
