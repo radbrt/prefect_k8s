@@ -21,15 +21,10 @@ def hello_world():
 @task
 def kv_demo():
     logger = prefect.context.get('logger')
-    kvurl = 'https://bricksvault.vault.azure.net/'
-    credential = DefaultAzureCredential()
-    client = SecretClient(vault_url = kvurl, credential = credential)
-
-    s = client.get_secret('helloworldsecret')
-    logger.info(f"The secret is {s.value}")
+    logger.info(f"The secret is well hidden")
 
 with Flow(
-    FLOW_NAME, storage=STORAGE, run_config=KubernetesRun(labels=["aks"], image='radbrt.azurecr.io/prefectaz'),
+    FLOW_NAME, storage=STORAGE, run_config=KubernetesRun(labels=["aks"], image='radbrt/prefect_debug'),
 ) as flow:
     hw = hello_world()
     kvd = kv_demo()
