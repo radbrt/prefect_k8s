@@ -1,7 +1,7 @@
 from prefect import Flow, task
 from prefect.storage import GitHub
 import prefect
-from prefect.run_configs import KubernetesRun
+from prefect.run_configs import LocalRun
 
 FLOW_NAME = "gh_storage_k8s_run"
 STORAGE = GitHub(
@@ -22,7 +22,7 @@ def kv_demo():
     logger.info(f"The secret is well hidden")
 
 with Flow(
-    FLOW_NAME, storage=STORAGE, run_config=KubernetesRun(labels=["aks"], image='radbrt/prefect_debug'),
+    FLOW_NAME, storage=STORAGE, run_config=LocalRun(labels=["aks"]),
 ) as flow:
     hw = hello_world()
     kvd = kv_demo()
